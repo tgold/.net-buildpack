@@ -24,7 +24,8 @@ module NETBuildpack::Util
   # file locking (<tt>File.flock()</tt>) in order ensure that mutation of files in the cache is non-concurrent across
   # processes.  Reading files (once they've been downloaded) happens concurrently so read performance is not impacted.
   class DownloadCache
-
+    PROXY_ADDR = "proxy.de.abb.com"
+    PROXY_PORT = 8080
     # Creates an instance of the cache that is backed by the filesystem rooted at +cache_root+
     #
     # @param [String] cache_root the filesystem root for downloaded files to be cached in
@@ -95,8 +96,8 @@ module NETBuildpack::Util
 
     def download(filenames, uri)
       rich_uri = URI(uri)
-      Net::HTTP.start(rich_uri.host, rich_uri.port, :use_ssl => (rich_uri.scheme == 'https')) do |http|
-        request = Net::HTTP::Get.new(uri)
+      Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(rich_uri.host, rich_uri.port, :use_ssl => (rich_uri.scheme == 'https')) do |http|
+        request = Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT)::Get.new(rich_uri.path)
         http.request request do |response|
           write_response(filenames, response)
         end
@@ -140,8 +141,8 @@ module NETBuildpack::Util
     def update(filenames, uri)
       rich_uri = URI(uri)
 
-      Net::HTTP.start(rich_uri.host, rich_uri.port, :use_ssl => (rich_uri.scheme == 'https')) do |http|
-        request = Net::HTTP::Get.new(uri)
+      Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT).start(rich_uri.host, rich_uri.port, :use_ssl => (rich_uri.scheme == 'https')) do |http|
+        request = Net::HTTP::Proxy(PROXY_ADDR, PROXY_PORT)::Get.new(rich_uri.path)
         set_header request, 'If-None-Match', filenames[:etag]
         set_header request, 'If-Modified-Since', filenames[:last_modified]
 
